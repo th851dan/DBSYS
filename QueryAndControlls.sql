@@ -3,21 +3,94 @@
 commit;
 rollback;
 
-/*-----------------Zug-------------------------------------*/
+GRANT SELECT ON Fw TO dbsys70;
+GRANT SELECT ON Buchung TO dbsys70;
+GRANT SELECT ON Fw_4Stern TO dbsys70;
+GRANT SELECT ON Spa4 TO dbsys70;
+GRANT SELECT ON Fw_Anzaus TO dbsys70;
+GRANT SELECT ON Land_Fw TO dbsys70;
+GRANT SELECT ON Land TO dbsys70;
+GRANT SELECT ON Land_Anz TO dbsys70;
+GRANT SELECT ON wa TO dbsys70;
 
-SELECT * FROM Zug;
-SELECT * FROM Zug WHERE zug_Name = 'Thomas';
-
-/* simple join */
-SELECT * FROM Zug z, Wagen w
-WHERE z.zug_Nr = w.zug_Nr;
 
 
+/*------------Fw---------------------*/
+SELECT fw_Stadt,COUNT(*) as Anzahl_Fw FROM dbsys13.Fw
+GROUP BY fw_Stadt;
+/*------------Buchung-----------------*/
+CREATE OR REPLACE VIEW Fw_4Stern AS
+SELECT fw_Fwn, AVG(buc_Sterne) AS Sterne  FROM Buchung
+GROUP BY fw_Fwn
+HAVING AVG(buc_Sterne) > 4;
 
-/*-----------------On Delete Cascade-----------------------*/
+SELECT * FROM dbsys13.Fw_4Stern;
 
-SELECT * FROM Zug;
-SELECT * FROM Wagen;
-delete from Zug WHERE zug_Nr = 1;
-SELECT * FROM Zug;
-SELECT * FROM Wagen;
+SELECT fw_Name from Fw;
+CREATE OR REPLACE VIEW Spa4 AS
+SELECT f.fw_Name, s.Sterne FROM Fw f, Fw_4Stern s
+WHERE f.fw_Name = s.fw_Fwn AND f.im_Land = 'Spanien';
+
+SELECT * FROM dbsys13.Spa4;
+/*------------Fw hat die meinsten Ausstattung-----------------*/
+CREATE OR REPLACE VIEW Fw_Anzaus AS
+SELECT fw_Fwn , COUNT(aus_Name) as Anz
+FROM wa
+GROUP BY fw_Fwn;
+
+SELECT fw_Fwn FROM dbsys13.Fw_Anzaus
+WHERE Anz = (SELECT MAX(Anz) FROM dbsys13.Fw_Anzaus);
+
+/*------------Reservierung pro einzelnes Land -----------------*/
+CREATE OR REPLACE VIEW Land_Fw(Land,Fw) AS
+SELECT l.land_Name , COUNT(f.fw_Name)
+FROM Land l LEFT OUTER JOIN Fw f ON l.land_Name = f.im_Land LEFT OUTER JOIN Buchung b ON b.fw_Fwn = f.fw_Name
+WHERE SYSDATE < b.buc_von
+GROUP BY l.land_Name;
+
+SELECT land_Name,NVL(Anz,0) AS Anzahl
+FROM dbsys13.Land LEFT OUTER JOIN dbsys13.Land_Anz ON land_Name = Land
+ORDER BY Anzahl DESC;
+
+CREATE OR REPLACE VIEW Land_Anz(Land,Anz) AS
+SELECT f.im_Land,COUNT(*)
+FROM Fw f , Buchung b
+WHERE f.fw_Name = b.fw_Fwn
+AND SYSDATE < b.buc_von
+GROUP BY f.im_Land;
+
+
+/*------------Fw noch frei-----------------*/
+SELECT f.fw_Name , AVG(b.buc_Sterne) as Bewertung
+FROM dbsys13.Fw f LEFT OUTER JOIN dbsys13.Buchung b ON f.fw_Name = b.fw_Fwn INNER JOIN dbsys13.wa ON f.fw_Name = wa.fw_Fwn
+WHERE f.fw_Name != ANY(SELECT fw_Fwn FROM dbsys13.Buchung b
+                        WHERE (b.buc_von BETWEEN '2018-11-01' AND '2018-11-21') OR (b.buc_bis BETWEEN '2018-11-01' AND '2018-11-21') OR (b.buc_von < '2018-11-01' AND b.buc_bis > '2018-11-21'))
+AND wa.aus_Name = 'Sauna' AND f.im_land = 'Spanien' 
+GROUP BY f.fw_Name
+ORDER BY Bewertung DESC;
+
+
+
+SELECT f.fw_Name, NVL(AVG(b.buc_Sterne),0) as Bewertung
+FROM Fw f LEFT OUTER JOIN Buchung b ON f.fw_Name = b.fw_Fwn
+WHERE ((b.buc_von NOT BETWEEN '2018-11-01' AND '2018-11-21') AND (b.buc_bis NOT BETWEEN '2018-11-01' AND '2018-11-21')) OR (b.buc_von = NULL)
+GROUP BY f.fw_Name
+ORDER BY Bewertung DESC;
+
+
+
+
+
+
+
+
+SELECT AVG(buc_Sterne) from Buchung
+WHERE fw_Fwn = 'Fw2';
+
+
+select * from Buchung;
+
+
+
+select fw_Stadt from Fw;
+select fw_Name from Fw;
