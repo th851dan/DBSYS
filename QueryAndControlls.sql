@@ -79,18 +79,75 @@ ORDER BY Bewertung DESC;
 
 
 
+/*----------------stonierte Buchung----------*/
+
+DELETE FROM Buchung WHERE Buchung.buc_Bnr = 7 OR Buchung.buc_Bnr = 8;
+
+SELECT * FROM Storno;
+
+/*-----------Kundenstatistik--------*/
+
+CREATE OR REPLACE VIEW KundID(KundenID, Email) AS
+SELECT rownum, kun_Ma
+FROM Kunde;
+
+CREATE OR REPLACE VIEW KundenBuchung(KundenId, AnzBuchung) AS
+SELECT k.KundenID, COUNT(*)
+FROM  KunID k , Buchung b 
+WHERE k.Email = b.kun_Ma
+GROUP BY k.KundenID;
+
+CREATE OR REPLACE VIEW KundenStorno(KundenId, AnzStorno) AS
+SELECT k.KundenID, COUNT(*)
+FROM  KunID k , Storno s 
+WHERE k.Email = s.kun_Ma
+GROUP BY k.KundenID;
+
+--CREATE OR REPLACE VIEW GezahltPerRec(RecNr, Summe) AS
+--SELECT r.rec_Rnr, SUM(a.anz_Betrag)
+--FROM Rechnung r, Anzahlung a
+--WHERE r.rec_Rnr = a.rec_Rnr
+--GROUP BY r.rec_Rnr;
+
+CREATE OR REPLACE VIEW GezahltProBuc(BucNr, Summe) AS
+SELECT b.buc_Bnr, SUM(a.anz_Betrag)
+FROM Buchung b, Anzahlung a
+WHERE a.rec_Rnr = (SELECT r.rec_Rnr FROM Rechnung r
+                    WHERE r.buc_Bnr = b.buc_Bnr)
+GROUP BY b.buc_Bnr;
+
+--CREATE OR REPLACE VIEW GezahltProMail(Email, Summe) AS
+--SELECT b.kun_Ma, Sum(g.Summe)
+--FROM Buchung b, GezahltProBuc g
+--WHERE g.BucNr = b.buc_Bnr
+--GROUP BY b.kun_Ma;
+
+CREATE OR REPLACE VIEW GezahltProId(KundenId, Summe) AS
+SELECT k.KundenId, Sum(g.Summe)
+FROM KundId k, GezahltProBuc g
+WHERE g.BucNr = ANY(SELECT b.buc_Bnr
+                  FROM Buchung b
+                  WHERE b.kun_Ma = k.Email)
+GROUP BY k.KundenId;
 
 
+CREATE OR REPLACE VIEW KundenStatistik(KundenId, AnzBuchung, AnzStorno, Summe) AS
+SELECT k.KundenID, NVL(b.AnzBuchung, 0), NVL(s.AnzStorno,0), NVL(g.Summe,0)
+FROM KundID k LEFT OUTER JOIN KundenBuchung b ON k.KundenID = b.KundenID 
+               LEFT OUTER JOIN KundenStorno s ON k.KundenID = s.KundenID
+               LEFT OUTER JOIN GezahltProId g ON k.KundenID = g.KundenID
+ORDER BY k.kundenID ASC;
 
+SELECT * FROM KundenStatistik;
 
+SELECT * FROM KundID;
+SELECT k.KundenID, NVL(b.AnzBuchung, 0) AS AnzBuchung, NVL(s.AnzStorno,0) AS AnzStorno, NVL(g.Summe,0) AS Summe
+FROM KundID k LEFT OUTER JOIN KundenBuchung b ON k.KundenID = b.KundenID 
+               LEFT OUTER JOIN KundenStorno s ON k.KundenID = s.KundenID
+               LEFT OUTER JOIN GezahltProId g ON k.KundenID = g.KundenID
+ORDER BY k.kundenID ASC;
+SELECT * FROM KundenBuchung;
+SELECT * FROM KundenStorno;
+SELECT * FROM KundenStatistik;
 
-SELECT AVG(buc_Sterne) from Buchung
-WHERE fw_Fwn = 'Fw2';
-
-
-select * from Buchung;
-
-
-
-select fw_Stadt from Fw;
-select fw_Name from Fw;
+SELECT * FROM Rechnung;

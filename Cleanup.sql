@@ -10,7 +10,8 @@ drop table idN cascade constraints;
 drop table wa cascade constraints;
 drop table Rechnung cascade constraints;
 drop table Anzahlung cascade constraints;
-
+drop table Storno cascade constraints;
+drop sequence Storno_Zaehler;
 
 /* Quasi "Papierkorb leehren" */
 purge recyclebin;

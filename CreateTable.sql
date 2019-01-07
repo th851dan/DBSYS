@@ -69,7 +69,7 @@ CREATE TABLE Bild
 
 
 
-/*-----------------idN(in der Nähe)----------------------------*/
+/*-----------------idN(in der Nï¿½he)----------------------------*/
 CREATE TABLE idN
 ( fw_Fwn                VARCHAR2(20) NOT NULL,
   tat_Name              VARCHAR2(30) NOT NULL,
@@ -99,8 +99,32 @@ CREATE TABLE Rechnung
 CREATE TABLE Anzahlung
 ( anz_Nr                INT NOT NULL PRIMARY KEY CHECK (anz_Nr > 0),
   rec_Rnr               INT NOT NULL,
-  rec_Betrag            FLOAT NOT NULL CHECK (rec_Betrag >= 0),
-  rec_Datum             DATE NOT NULL,
+  anz_Betrag            FLOAT NOT NULL CHECK (anz_Betrag >= 0),
+  anz_Datum             DATE NOT NULL,
   CONSTRAINT fk_anz_recRnr FOREIGN KEY (rec_Rnr) REFERENCES Rechnung(rec_Rnr) ON DELETE CASCADE
 );
+
+/*------------Stonierte Buchung-----------*/
+CREATE TABLE Storno
+(
+  storn_id              INT NOT NULL PRIMARY KEY CHECK (storn_id >= 0),
+  buc_Bnr               INT NOT NULL,
+  buc_Bdt               DATE NOT NULL,
+  buc_von               DATE NOT NULL,
+  buc_bis               DATE NOT NULL,
+  kun_Ma                VARCHAR2(30) NOT NULL,
+  fw_Fwn                VARCHAR2(20) NOT NULL,
+  storn_datum		    DATE NOT NULL,
+  CONSTRAINT fk_Storno_kunMa FOREIGN KEY (kun_Ma) REFERENCES Kunde(kun_Ma) ON DELETE CASCADE
+);
+
+CREATE SEQUENCE Storno_Zaehler;
+
+CREATE OR REPLACE TRIGGER add_Storno
+    AFTER DELETE ON Buchung
+    FOR EACH ROW
+BEGIN
+    INSERT INTO Storno VALUES (Storno_Zaehler.nextval, :OLD.buc_Bnr, :OLD.buc_Bdt, :OLD.buc_von, :OLD.buc_bis, :OLD.kun_Ma, :OLD.fw_Fwn, SYSDATE);
+END;
+/
 
