@@ -103,6 +103,12 @@ FROM  KunID k , Storno s
 WHERE k.Email = s.kun_Ma
 GROUP BY k.KundenID;
 
+SELECT k.KundenID, COUNT(*)
+FROM  KunID k , Storno s 
+WHERE k.Email = s.kun_Ma
+GROUP BY k.KundenID;
+
+
 --CREATE OR REPLACE VIEW GezahltPerRec(RecNr, Summe) AS
 --SELECT r.rec_Rnr, SUM(a.anz_Betrag)
 --FROM Rechnung r, Anzahlung a
@@ -130,6 +136,12 @@ WHERE g.BucNr = ANY(SELECT b.buc_Bnr
                   WHERE b.kun_Ma = k.Email)
 GROUP BY k.KundenId;
 
+SELECT k.KundenId, COUNT(DISTINCT b.buc_Bnr), SUM(a.anz_Betrag)
+FROM KundId k,  Buchung b, Anzahlung a
+WHERE k.Email = b.kun_Ma AND b.buc_Bnr = ANY(SELECT r.buc_Bnr
+                                             FROM Rechnung r
+                                             WHERE r.rec_Rnr = a.rec_Rnr)
+GROUP BY k.KundenId;
 
 CREATE OR REPLACE VIEW KundenStatistik(KundenId, AnzBuchung, AnzStorno, Summe) AS
 SELECT k.KundenID, NVL(b.AnzBuchung, 0), NVL(s.AnzStorno,0), NVL(g.Summe,0)
