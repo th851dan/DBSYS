@@ -163,3 +163,5 @@ SELECT * FROM KundenStorno;
 SELECT * FROM KundenStatistik;
 
 SELECT * FROM Rechnung;
+
+SELECT max(buc_Bnr) FROM Buchung;
